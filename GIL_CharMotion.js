@@ -11,7 +11,13 @@
 GIL.configure('CharMotion');
 
 GIL.CharMotion.motionSpeed = 5;
-GIL.CharMotion.frames = 5;
+
+//=============================================================================
+// Game_Battler
+//=============================================================================
+Game_Battler.prototype.isMotionPlaying = function() {
+    return this._motionPlaying;
+};
 
 //=============================================================================
 // Sprite_Character
@@ -60,9 +66,13 @@ Sprite_Character.prototype.updateMotion = function() {
 Sprite_Character.prototype.setupMotion = function() {
     if (this._battler.isMotionRequested()) {
         var motionType = this._battler.motionType();
+        this._battler.clearMotion();
+        if (motionType == 'wait') {
+            this._motion = null;
+            return;
+        }
         this._motionBitmap = this.loadMotionBitmap(motionType);
         this.startMotion(motionType);
-        this._battler.clearMotion();
     }
 };
 
@@ -70,25 +80,31 @@ Sprite_Character.prototype.startMotion = function(motionType) {
     var newMotion = Sprite_Actor.MOTIONS[motionType];
     if (this._motion !== newMotion) {
         this._motion = newMotion;
-        this._character._motion = true;
         this._motionCount = 0;
         this._pattern = 0;
+        this._battler._motionPlaying = true;
     }
 };
 
 Sprite_Character.prototype.updateMotionCount = function() {
     if (this._motion && ++this._motionCount >= this.motionSpeed()) {
         if (this._motion.loop) {
-            this._pattern = (this._pattern + 1) % 4;
-        } else if (this._pattern < GIL.CharMotion.frames - 1) {
+            this._pattern = (this._pattern + 1) % this.motionFrames();
             // console.log(this._pattern);
+        } else if (this._pattern < this.motionFrames() - 1) {
             this._pattern++;
+            // console.log(this._pattern);
         } else {
             this.refreshMotion();
             this._battler.clearMotion();
         }
         this._motionCount = 0;
     }
+};
+
+Sprite_Character.prototype.motionFrames = function() {
+    var bitmap = this._motionBitmap;
+    if (bitmap) return bitmap.width / (bitmap.height / 4);
 };
 
 Sprite_Character.prototype.refreshMotion = function() {
@@ -106,8 +122,8 @@ Sprite_Character.prototype.updateMotionFrame = function() {
     if (bitmap) {
         // var motionIndex = this._motion ? this._motion.index : 0;
         var pattern = this._pattern;
-        var cw = bitmap.width / GIL.CharMotion.frames;
         var ch = bitmap.height / 4;
+        var cw = ch;
         var cx = pattern;
         var cy = this.characterPatternY();
         this._motionSprite.setFrame(cx * cw, cy * ch, cw, ch);
@@ -123,20 +139,10 @@ Sprite_Character.prototype.updateMotionSprite = function() {
         this._motionSprite.x = this.x;
         this._motionSprite.z = this.z;
         this._motionSprite.y = this.y;
-        this._motionOffset = this._motionSprite._frame.height - this._frame.height;
-        var offset = this._motionOffset + 2; // Not sure where this 2 comes from...
-        var d = this._character._direction;
-        (function _(d) {
-            if (d === 0) return;
-            var d2 = d-2;
-            offset += d2;
-            _(d2);
-        }) (d);
-        // console.log(this._motionOffset, offset);
-        this._motionSprite.y += offset;
     } else if (this._motionSprite) {
         this.visible = true;
         this._motionSprite.visible = false;
+        this._battler._motionPlaying = false;
     }
 };
 

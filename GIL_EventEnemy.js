@@ -146,6 +146,10 @@ Game_Character.prototype.battler = function() {
     if (this.isEnemy())   return $gameTroop.member(this._eventId);
 };
 
+Game_Character.prototype.isBattler = function() {
+    return !!this.battler();
+};
+
 //=============================================================================
 // Sprite_Character
 //=============================================================================
