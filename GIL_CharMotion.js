@@ -66,11 +66,8 @@ Sprite_Character.prototype.updateMotion = function() {
 Sprite_Character.prototype.setupMotion = function() {
     if (this._battler.isMotionRequested()) {
         var motionType = this._battler.motionType();
+        if (motionType == 'clear')  return (this._motion = null);
         this._battler.clearMotion();
-        if (motionType == 'wait') {
-            this._motion = null;
-            return;
-        }
         this._motionBitmap = this.loadMotionBitmap(motionType);
         this.startMotion(motionType);
     }

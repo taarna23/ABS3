@@ -45,6 +45,8 @@ Game_Map.prototype.addEvent = function(mapId, eventId, x, y) {
         if (e) nextId = e._eventId;
         else   nextId = this.nextId();
 
+        if (mapId === 0) mapId = this._mapId;
+
         this._sourceData = {
             eventData: null,
             mapId:   mapId,
@@ -53,6 +55,7 @@ Game_Map.prototype.addEvent = function(mapId, eventId, x, y) {
             x: x,
             y: y,
         };
+
         if (mapId === this._mapId)  this.updateNewEvent();
         else                        this.loadOtherMapData(mapId);
         return nextId;
@@ -71,10 +74,15 @@ Game_Map.prototype.updateNewEvent = function() {
     else                    eventData = $dataMap.events[eventId];
     OtherMapData = null;
 
-    source.eventData = JsonEx.makeDeepCopy(eventData);
+    source.eventData = JsonEx.makeDeepCopy(eventData) || {};
     source.eventData.x = source.x;
     source.eventData.y = source.y;
     source.eventData._eventId = nextId;
+
+    if (!eventData) {
+        source.eventData.pages = {};
+        return this.addNewEvent(mapId, nextId);
+    }
 
     // Check for event at x,y
     var e = $gameMap.eventsXy(source.x, source.y)[0];

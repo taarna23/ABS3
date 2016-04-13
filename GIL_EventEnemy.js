@@ -4,7 +4,7 @@
  * @license MIT
  *
  * @param Troop Offset
- * @desc Offset for map-based $gameTroop
+ * @desc Offset for map-based Game_Troop
  * Default 100
  * @default 100
  *
@@ -14,6 +14,12 @@ GIL.configure('EventEnemy');
 //=============================================================================
 // Game_Map
 //=============================================================================
+Object.defineProperties(Game_Map.prototype, {
+    troopId: { get: function() {
+        return this._mapId + GIL.Param.EventEnemy_TroopOffset;
+    }},
+});
+
 // Replacement method
 Game_Map.prototype.setupEvents = function() {
     this._events = [];
@@ -33,8 +39,19 @@ Game_Map.prototype.setupEvents = function() {
     this._commonEvents = this.parallelCommonEvents().map(function(commonEvent) {
         return new Game_CommonEvent(commonEvent.id);
     });
-
+    this.saveTroop();
     this.refreshTileEvents();
+};
+
+Game_Map.prototype.saveTroop = function() {
+    $gameTroop.setup(this.troopId);
+    this.dataTroop = $dataTroops[this.troopId];
+    this.troop = $gameTroop;
+};
+
+Game_Map.prototype.loadTroop = function() {
+    $dataTroops[this.troopId] = this.dataTroop;
+    $gameTroop = this.troop;
 };
 
 Game_Map.prototype.checkForEnemyId = function(eventId) {
@@ -45,17 +62,13 @@ Game_Map.prototype.checkForEnemyId = function(eventId) {
     }
 };
 
-Game_Map.prototype.troopId = function() {
-    return this._mapId + GIL.Param.EventEnemy_TroopOffset;
-};
-
 Game_Map.prototype.newTroop = function() {
     var troop = {};
-    troop.id = this.troopId();
+    troop.id = this.troopId;
     troop.name = $dataMap.displayName;
     troop.members = [];
     troop.pages = [{}];
-    $dataTroops[this.troopId()] = troop;
+    $dataTroops[this.troopId] = troop;
 };
 
 Game_Map.prototype.newTroopMember = function(eventId, enemyId) {
@@ -66,7 +79,7 @@ Game_Map.prototype.newTroopMember = function(eventId, enemyId) {
     member.y = 0;
     member.hidden = false;
 
-    var troop = $dataTroops[this.troopId()];
+    var troop = $dataTroops[this.troopId];
     troop.members.push(member);
 };
 
@@ -77,18 +90,10 @@ Game_Map.prototype.newTroopMember = function(eventId, enemyId) {
 Scene_Map.prototype.isReady = function() {
     if (!this._mapLoaded && DataManager.isMapLoaded()) {
         this.onMapLoaded();
+        $gameMap.loadTroop();
         this._mapLoaded = true;
     }
-    if (this._mapLoaded && !this._troopLoaded) {
-        this.onTroopLoaded();
-        this._troopLoaded = true;
-    }
-    return this._mapLoaded && this._troopLoaded && Scene_Base.prototype.isReady.call(this);
-};
-
-Scene_Map.prototype.onTroopLoaded = function() {
-    $gameTroop.setup($gameMap.troopId());
-    // console.log($gameTroop);
+    return this._mapLoaded && Scene_Base.prototype.isReady.call(this);
 };
 
 //=============================================================================
@@ -129,6 +134,8 @@ Game_Battler.prototype.clearResult = function() {
     var scene = SceneManager._scene;
     if (scene.constructor != Scene_Map) this._result.clear();
 };
+
+Game_Battler.prototype.performAttack = function() {};
 
 //=============================================================================
 // Game_Character
